@@ -58,7 +58,7 @@ int pysqlite_statement_create(pysqlite_Statement* self, pysqlite_Connection* con
     self->st = NULL;
     self->in_use = 0;
 
-    sql_cstr = _PyUnicode_AsStringAndSize(sql, &sql_cstr_len);
+    sql_cstr = PyUnicode_AsUTF8AndSize(sql, &sql_cstr_len);
     if (sql_cstr == NULL) {
         rc = PYSQLITE_SQL_WRONG_TYPE;
         return rc;
@@ -94,8 +94,8 @@ int pysqlite_statement_create(pysqlite_Statement* self, pysqlite_Connection* con
 int pysqlite_statement_bind_parameter(pysqlite_Statement* self, int pos, PyObject* parameter)
 {
     int rc = SQLITE_OK;
-    const char* buffer;
-    char* string;
+    Py_buffer buffer;
+    const char* string;
     Py_ssize_t buflen;
     parameter_type paramtype;
 
@@ -135,7 +135,7 @@ int pysqlite_statement_bind_parameter(pysqlite_Statement* self, int pos, PyObjec
             rc = sqlite3_bind_double(self->st, pos, PyFloat_AsDouble(parameter));
             break;
         case TYPE_UNICODE:
-            string = _PyUnicode_AsStringAndSize(parameter, &buflen);
+            string = PyUnicode_AsUTF8AndSize(parameter, &buflen);
             if (string == NULL)
                 return -1;
             if (buflen > INT_MAX) {
@@ -146,16 +146,18 @@ int pysqlite_statement_bind_parameter(pysqlite_Statement* self, int pos, PyObjec
             rc = sqlite3_bind_text(self->st, pos, string, (int)buflen, SQLITE_TRANSIENT);
             break;
         case TYPE_BUFFER:
-            if (PyObject_AsCharBuffer(parameter, &buffer, &buflen) != 0) {
+            if (PyObject_GetBuffer(parameter, &buffer, PyBUF_SIMPLE) != 0) {
                 PyErr_SetString(PyExc_ValueError, "could not convert BLOB to buffer");
                 return -1;
             }
-            if (buflen > INT_MAX) {
+            if (buffer.len > INT_MAX) {
                 PyErr_SetString(PyExc_OverflowError,
                                 "BLOB longer than INT_MAX bytes");
+                PyBuffer_Release(&buffer);
                 return -1;
             }
-            rc = sqlite3_bind_blob(self->st, pos, buffer, buflen, SQLITE_TRANSIENT);
+            rc = sqlite3_bind_blob(self->st, pos, buffer.buf, (int)buffer.len, SQLITE_TRANSIENT);
+            PyBuffer_Release(&buffer);
             break;
         case TYPE_UNKNOWN:
             rc = -1;
@@ -304,7 +306,7 @@ int pysqlite_statement_recompile(pysqlite_Statement* self, PyObject* params)
     Py_ssize_t sql_len;
     sqlite3_stmt* new_st;
 
-    sql_cstr = _PyUnicode_AsStringAndSize(self->sql, &sql_len);
+    sql_cstr = PyUnicode_AsUTF8AndSize(self->sql, &sql_len);
     if (sql_cstr == NULL) {
         rc = PYSQLITE_SQL_WRONG_TYPE;
         return rc;

@@ -469,7 +469,11 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
      *  (see pybsddb-users mailing list post on 2002-08-07)
      */
 #ifdef WITH_THREAD
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 7
+    Py_Initialize();
+#else
     PyEval_InitThreads();
+#endif
 #endif
 
 error:

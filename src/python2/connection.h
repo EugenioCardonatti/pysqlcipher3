@@ -1,6 +1,6 @@
 /* connection.h - definitions for the connection type
  *
- * Copyright (C) 2004-2010 Gerhard Häring <gh@ghaering.de>
+ * Copyright (C) 2004-2010 Gerhard Hï¿½ring <gh@ghaering.de>
  *
  * This file is part of pysqlite.
  *
@@ -66,7 +66,7 @@ typedef struct
     int initialized;
 
     /* thread identification of the thread the connection was created in */
-    long thread_ident;
+    unsigned long thread_ident;
 
     pysqlite_Cache* statement_cache;
 

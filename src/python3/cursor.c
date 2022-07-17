@@ -46,6 +46,8 @@ static pysqlite_StatementKind detect_statement_type(const char* statement)
 
     dst = buf;
     *dst = 0;
+    // warning: comparison of integer expressions of different signedness: 
+    // ‘long int’ and ‘long unsigned int’ [-Wsign-compare] -> OK 
     while (Py_ISALPHA(*src) && dst - buf < sizeof(buf) - 2) {
         *dst++ = Py_TOLOWER(*src++);
     }
@@ -509,7 +511,7 @@ PyObject* _pysqlite_query_execute(pysqlite_Cursor* self, int multiple, PyObject*
         pysqlite_statement_reset(self->statement);
     }
 
-    operation_cstr = _PyUnicode_AsStringAndSize(operation, &operation_len);
+    operation_cstr = PyUnicode_AsUTF8AndSize(operation, &operation_len);
     if (operation_cstr == NULL)
         goto error;
 

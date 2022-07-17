@@ -1,7 +1,7 @@
 #-*- coding: iso-8859-1 -*-
 # pysqlite2/test/dbapi.py: tests for DB-API compliance
 #
-# Copyright (C) 2004-2010 Gerhard Häring <gh@ghaering.de>
+# Copyright (C) 2004-2010 Gerhard Hï¿½ring <gh@ghaering.de>
 #
 # This file is part of pysqlite.
 #
@@ -21,6 +21,7 @@
 #    misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 
+import sys
 import unittest
 import pysqlcipher3.dbapi2 as sqlite
 try:
@@ -28,8 +29,10 @@ try:
 except ImportError:
     threading = None
 
-from test.support import TESTFN, unlink
-
+if sys.version_info < (3, 10):
+    from test.support import TESTFN, unlink
+else:
+    from test.support.os_helper import TESTFN, unlink
 
 class ModuleTests(unittest.TestCase):
     def CheckAPILevel(self):

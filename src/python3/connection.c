@@ -522,19 +522,20 @@ _pysqlite_set_result(sqlite3_context* context, PyObject* py_val)
             return -1;
         sqlite3_result_text(context, str, -1, SQLITE_TRANSIENT);
     } else if (PyObject_CheckBuffer(py_val)) {
-        const char* buffer;
-        Py_ssize_t buflen;
-        if (PyObject_AsCharBuffer(py_val, &buffer, &buflen) != 0) {
+        Py_buffer buffer;
+        if (PyObject_GetBuffer(py_val, &buffer, PyBUF_SIMPLE) != 0) {
             PyErr_SetString(PyExc_ValueError,
                             "could not convert BLOB to buffer");
             return -1;
         }
-        if (buflen > INT_MAX) {
+        if (buffer.len > INT_MAX) {
             PyErr_SetString(PyExc_OverflowError,
                             "BLOB longer than INT_MAX bytes");
+            PyBuffer_Release(&buffer);
             return -1;
         }
-        sqlite3_result_blob(context, buffer, (int)buflen, SQLITE_TRANSIENT);
+        sqlite3_result_blob(context, buffer.buf, (int)(buffer.len), SQLITE_TRANSIENT);
+        PyBuffer_Release(&buffer);
     } else {
         return -1;
     }
@@ -1211,7 +1212,7 @@ static int pysqlite_connection_set_isolation_level(pysqlite_Connection* self, Py
             return -1;
         }
 
-        statement = _PyUnicode_AsStringAndSize(begin_statement, &size);
+        statement = PyUnicode_AsUTF8AndSize(begin_statement, &size);
         if (!statement) {
             Py_DECREF(begin_statement);
             return -1;
@@ -1507,7 +1508,7 @@ pysqlite_connection_create_collation(pysqlite_Connection* self, PyObject* args)
     PyObject* retval;
     Py_ssize_t i, len;
     _Py_IDENTIFIER(upper);
-    char *uppercase_name_str;
+    const char *uppercase_name_str;
     int rc;
     unsigned int kind;
     void *data;
