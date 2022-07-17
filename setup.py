@@ -50,12 +50,15 @@ sources = [os.path.join("src", "python" + str(sys.version_info[0]), source)
                           "statement.c", "util.c", "row.c"]]
 
 # define packages
-packages = [PACKAGE_NAME, PACKAGE_NAME + ".test"]
+packages = [PACKAGE_NAME]
+test_dir = None
 
 if sys.version_info[0] < 3:
+    test_dir = PACKAGE_NAME + ".test.python2"
     packages.append(PACKAGE_NAME + ".test.python2")
     EXTENSION_MODULE_NAME = "._sqlite"
 else:
+    test_dir = PACKAGE_NAME + ".test.python3"
     packages.append(PACKAGE_NAME + ".test.python3")
     EXTENSION_MODULE_NAME = "._sqlite3"
 
@@ -116,6 +119,15 @@ class AmalgationLibSQLCipherBuilder(build_ext):
         ext.define_macros.append(("SQLITE_HAS_CODEC", "1"))
         ext.define_macros.append(("SQLITE_TEMP_STORE", "2"))
 
+        # python 3.10
+        # For all # variants of formats (s#, y#, etc.), the macro PY_SSIZE_T_CLEAN must be 
+        # defined before including Python.h. On Python 3.9 and older, the type of the length 
+        # argument is Py_ssize_t if the PY_SSIZE_T_CLEAN macro is defined, or int otherwise.
+        # 
+        # PyObject* _pysqlite_fetch_one_row(pysqlite_Cursor* self)
+        #
+        ext.define_macros.append(("PY_SSIZE_T_CLEAN", "1"))
+
         ext.include_dirs.append(self.amalgamation_root)
         ext.sources.append(os.path.join(self.amalgamation_root, "sqlite3.c"))
 
@@ -162,6 +174,7 @@ def get_setup_args():
         url="https://github.com/rigglemania/pysqlcipher3",
         package_dir={PACKAGE_NAME: "lib"},
         packages=packages,
+        test_suite= test_dir,
         ext_modules=[Extension(
             name=PACKAGE_NAME + EXTENSION_MODULE_NAME,
             sources=sources,
